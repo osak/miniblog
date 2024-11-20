@@ -1,0 +1,24 @@
+.flex-row {
+    display: flex;
+    flex-direction: row;
+}
+
+.flex-row > * {
+    margin-left: 16px;
+}
+
+.flex-row__spacer {
+    flex-grow: 1;
+}
+
+.flex-row__fill {
+    flex-grow: 1;
+}
+
+#post-form {
+    width: 70vw;
+}
+
+#post-form > * {
+    margin-bottom: 8px;
+}

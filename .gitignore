@@ -1,0 +1,5 @@
+server/dist
+
+ui/.parcel-cache
+ui/dist
+ui/node_modules
