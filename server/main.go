@@ -2,7 +2,11 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"github.com/jmoiron/sqlx"
+	"github.com/osak/miniblog/db"
+	"github.com/osak/miniblog/resources"
 	"html/template"
 	"io"
 	"net/http"
@@ -57,11 +61,67 @@ func (s *server) htmlHandler(name string) func(w http.ResponseWriter, r *http.Re
 	}
 }
 
+type PostController struct {
+	dbx       sqlx.DB
+	postStore db.PostStore
+}
+
+func (p *PostController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	templates := template.Must(template.ParseGlob("templates/*.html"))
+	slug := r.PathValue("slug")
+	if slug == "" {
+		conn, err := p.dbx.Connx(context.Background())
+		if err != nil {
+			println("Failed to connect to db")
+			w.WriteHeader(500)
+			return
+		}
+		posts, err := p.postStore.FindAll(conn)
+		if err != nil {
+			fmt.Printf("Failed to fetch posts: %v", err)
+			w.WriteHeader(500)
+			return
+		}
+		params := map[string]interface{}{
+			"Posts": posts,
+		}
+
+		contentBuf := bytes.Buffer{}
+		err = templates.ExecuteTemplate(&contentBuf, "posts.template.html", params)
+		if err != nil {
+			fmt.Printf("Failed to render template: %v", err)
+			w.WriteHeader(500)
+			return
+		}
+
+		err = templates.ExecuteTemplate(w, "_layout.template.html", map[string]interface{}{
+			"Content": template.HTML(contentBuf.String()),
+		})
+		if err != nil {
+			fmt.Printf("Failed to render template: %v", err)
+			return
+		}
+	} else {
+		w.WriteHeader(404)
+		return
+	}
+}
+
 func main() {
 	s := server{}
+	dbx, err := resources.OpenDB()
+	if err != nil {
+		panic(err)
+	}
+	postController := PostController{
+		dbx:       *dbx,
+		postStore: &db.PostStoreImpl{},
+	}
 
 	http.HandleFunc("/", s.htmlHandler("index"))
 	http.HandleFunc("/post", s.htmlHandler("post"))
+	http.Handle("/posts/{slug}", &postController)
+	http.Handle("/posts", &postController)
 	http.HandleFunc("/static/js/post.js", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "../ui/dist/post.js")
 	})
@@ -69,7 +129,7 @@ func main() {
 		http.ServeFile(w, r, "../assets/css/main.css")
 	})
 
-	if err := http.ListenAndServe("localhost:8080", nil); err != nil {
+	if err := http.ListenAndServe("localhost:8081", nil); err != nil {
 		fmt.Printf("Failed to start server: %v", err)
 	}
 }

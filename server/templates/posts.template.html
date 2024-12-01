@@ -1,0 +1,5 @@
+<div class="posts">
+    {{ range .Posts }}
+        {{ template "_post_single.template.html" . }}
+    {{ end }}
+</div>

@@ -1,0 +1,17 @@
+version: '3.9'
+
+services:
+  db:
+    image: 'mariadb:11.6.2-noble'
+    ports:
+      - '3306:3306'
+    volumes:
+      - db-data:/var/lib/mysql
+    environment:
+      - MARIADB_USER=miniblog_dev
+      - MARIADB_PASSWORD=dev
+      - MARIADB_DATABASE=miniblog
+      - MARIADB_ROOT_PASSWORD=root
+
+volumes:
+  db-data:

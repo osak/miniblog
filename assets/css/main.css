@@ -22,3 +22,7 @@
 #post-form > * {
     margin-bottom: 8px;
 }
+
+.post-date {
+    color: gray;
+}
