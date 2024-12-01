@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 )
 
 type server struct {
@@ -66,6 +67,14 @@ type PostController struct {
 	postStore db.PostStore
 }
 
+type PostModel struct {
+	Id       string
+	Slug     string
+	Title    string
+	BodyHtml template.HTML
+	PostedAt string
+}
+
 func (p *PostController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	templates := template.Must(template.ParseGlob("templates/*.html"))
 	slug := r.PathValue("slug")
@@ -82,8 +91,24 @@ func (p *PostController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(500)
 			return
 		}
+		jst, err := time.LoadLocation("Asia/Tokyo")
+		if err != nil {
+			fmt.Printf("Failed to load timezone: %v", err)
+			w.WriteHeader(500)
+			return
+		}
+		models := make([]PostModel, 0, len(posts))
+		for _, post := range posts {
+			models = append(models, PostModel{
+				Id:       post.Id.String(),
+				Slug:     post.Slug,
+				Title:    post.Title,
+				BodyHtml: template.HTML(post.Body),
+				PostedAt: time.UnixMilli(post.PostedAt).In(jst).Format("2006-01-02 15:04:05 -0700"),
+			})
+		}
 		params := map[string]interface{}{
-			"Posts": posts,
+			"Posts": models,
 		}
 
 		contentBuf := bytes.Buffer{}

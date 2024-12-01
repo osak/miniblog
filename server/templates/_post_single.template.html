@@ -2,10 +2,10 @@
     <div class="post-header">
         <h2 class="post-title">{{ .Title }}</h2>
         <div class="post-meta">
-            <span class="post-date">{{ .PostedAt }}</span>
+            <div class="post-date">📆 {{ .PostedAt }}</div>
         </div>
     </div>
-    <div class="post-body">{{ .Body }}</div>
+    <div class="post-body">{{ .BodyHtml }}</div>
     <div class="post-footer">
     </div>
 </div>
