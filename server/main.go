@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"github.com/osak/miniblog/db"
@@ -68,66 +69,46 @@ type PostController struct {
 }
 
 type PostModel struct {
-	Id       string
-	Slug     string
-	Title    string
-	BodyHtml template.HTML
-	PostedAt string
+	Id       string `json:"id"`
+	Slug     string `json:"slug"`
+	Title    string `json:"title"`
+	BodyHtml string `json:"bodyHtml"`
+	PostedAt string `json:"postedAt"`
 }
 
 func (p *PostController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	templates := template.Must(template.ParseGlob("templates/*.html"))
-	slug := r.PathValue("slug")
-	if slug == "" {
-		conn, err := p.dbx.Connx(context.Background())
-		if err != nil {
-			println("Failed to connect to db")
-			w.WriteHeader(500)
-			return
-		}
-		posts, err := p.postStore.FindAll(conn)
-		if err != nil {
-			fmt.Printf("Failed to fetch posts: %v", err)
-			w.WriteHeader(500)
-			return
-		}
-		jst, err := time.LoadLocation("Asia/Tokyo")
-		if err != nil {
-			fmt.Printf("Failed to load timezone: %v", err)
-			w.WriteHeader(500)
-			return
-		}
-		models := make([]PostModel, 0, len(posts))
-		for _, post := range posts {
-			models = append(models, PostModel{
-				Id:       post.Id.String(),
-				Slug:     post.Slug,
-				Title:    post.Title,
-				BodyHtml: template.HTML(post.Body),
-				PostedAt: time.UnixMilli(post.PostedAt).In(jst).Format("2006-01-02 15:04:05 -0700"),
-			})
-		}
-		params := map[string]interface{}{
-			"Posts": models,
-		}
+	conn, err := p.dbx.Connx(context.Background())
+	if err != nil {
+		fmt.Printf("Failed to connect to db: %v", err)
+		w.WriteHeader(500)
+		return
+	}
 
-		contentBuf := bytes.Buffer{}
-		err = templates.ExecuteTemplate(&contentBuf, "posts.template.html", params)
-		if err != nil {
-			fmt.Printf("Failed to render template: %v", err)
-			w.WriteHeader(500)
-			return
-		}
+	posts, err := p.postStore.FindAll(conn)
+	if err != nil {
+		fmt.Printf("Failed to fetch posts: %v", err)
+		w.WriteHeader(500)
+		return
+	}
 
-		err = templates.ExecuteTemplate(w, "_layout.template.html", map[string]interface{}{
-			"Content": template.HTML(contentBuf.String()),
-		})
-		if err != nil {
-			fmt.Printf("Failed to render template: %v", err)
-			return
+	postModels := make([]PostModel, len(posts))
+	for i, post := range posts {
+		postModels[i] = PostModel{
+			Id:       post.Id.String(),
+			Slug:     post.Slug,
+			Title:    post.Title,
+			BodyHtml: post.Body,
+			PostedAt: time.UnixMilli(post.PostedAt).Format(time.RFC3339),
 		}
-	} else {
-		w.WriteHeader(404)
+	}
+
+	response := map[string]interface{}{
+		"posts": postModels,
+	}
+	enc := json.NewEncoder(w)
+	if err := enc.Encode(response); err != nil {
+		fmt.Printf("Failed to encode response: %v", err)
+		w.WriteHeader(500)
 		return
 	}
 }
@@ -146,7 +127,7 @@ func main() {
 	http.HandleFunc("/", s.htmlHandler("index"))
 	http.HandleFunc("/post", s.htmlHandler("post"))
 	http.Handle("/posts/{slug}", &postController)
-	http.Handle("/posts", &postController)
+	http.Handle("/api/posts", &postController)
 	http.HandleFunc("/static/js/post.js", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "../ui/dist/post.js")
 	})
