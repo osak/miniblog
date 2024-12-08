@@ -1,14 +1,8 @@
-interface Post {
-    id: number;
-    slug: string;
-    title: string;
-    bodyHtml: string;
-    postedAt: string;
-}
+import {fetchPosts, Post} from "@/api/api";
+
 
 export default async function Index() {
-    const res = await fetch('http://localhost:8081/api/posts').then(res => res.json());
-    const posts: Post[] = res.posts;
+    const posts = await fetchPosts();
     return (
         <div>
             <ul>
