@@ -10,18 +10,12 @@ interface Config {
 export let config: Config = {} as never;
 
 const loadConfig = () => {
-    const configFile = process.env.CONFIG_FILE;
-    if (configFile == undefined) {
-        throw new Error("CONFIG_FILE is not set");
-    }
-
-    const configContents = fs.readFileSync(configFile, 'utf8');
     const schema = z.object({
         BACKEND_URL: z.string(),
         ADMIN_USER: z.string(),
         ADMIN_PASSWORD: z.string(),
-    }).strict();
-    config = schema.parse(JSON.parse(configContents));
+    });
+    config = schema.parse(process.env);
 };
 
 loadConfig();
