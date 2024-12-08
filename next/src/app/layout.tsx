@@ -4,6 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
     title: 'Miniblog',
     description: 'A minimal blog',
+    authors: [{ name: 'Osamu Koga (osa_k)', url: 'https://osak.jp'}]
 };
 
 export default function RootLayout({
