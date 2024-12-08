@@ -1,4 +1,4 @@
-import {fetchPosts, Post} from "@/api/api";
+import {fetchPosts} from "@/api/api";
 
 
 export default async function Index() {

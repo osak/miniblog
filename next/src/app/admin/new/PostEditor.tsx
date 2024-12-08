@@ -11,7 +11,6 @@ export const PostEditor = () => {
         register,
         handleSubmit,
         watch,
-        formState: { errors }
     } = useForm<FormState>();
 
     const source = watch('source');
